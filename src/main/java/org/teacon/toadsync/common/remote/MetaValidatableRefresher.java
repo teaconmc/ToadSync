@@ -108,7 +108,7 @@ public final class MetaValidatableRefresher implements Closeable {
                 // parse the content and add validatable information unless 304 returned
                 if (r.statusCode() != HttpURLConnection.HTTP_NOT_MODIFIED) {
                     var parser = config.configFormat().createParser();
-                    parser.parse(r.body(), config, ParsingMode.MERGE);
+                    parser.parse(r.body(), config, ParsingMode.REPLACE);
                     newValidatable = RemoteMeta.Validatable.of(validatable.read(config), r.headers());
                     // write new config to file
                     config.save();
