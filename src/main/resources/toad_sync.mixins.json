@@ -1,0 +1,20 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "compatibilityLevel": "JAVA_8",
+    "refmap": "toad_sync.refmap.json",
+    "package": "org.teacon.toadsync.mixin",
+    "mixins": [],
+    "client": [
+        "BrandingControlMixin",
+        "ClientMainMixin",
+        "MinecraftMixin",
+        "OptionsMixin"
+    ],
+    "server": [
+        "ServerMainMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

@@ -1,0 +1,4 @@
+org.teacon.toadsync.common.sync.TitleSyncProvider
+org.teacon.toadsync.common.sync.OptionsSyncProvider
+org.teacon.toadsync.common.sync.AssetsSyncProvider
+org.teacon.toadsync.common.sync.DataSyncProvider
