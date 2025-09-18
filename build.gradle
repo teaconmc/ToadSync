@@ -163,6 +163,10 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    // Added by TeaCon
+    jarJar implementation(project("spi"))
+    additionalRuntimeClasspath project("spi")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -192,6 +196,41 @@ sourceSets.main.resources.srcDir generateModMetadata
 // To avoid having to run "generateModMetadata" manually, make it run on every project reload
 neoForge.ideSyncTask generateModMetadata
 
+// Added by TeaCon
+jar {
+    from("LICENSE") { into 'META-INF' }
+}
+
+// Added by TeaCon
+ext.teaconMavenPom = (MavenPom pom) -> pom.tap {
+    name = mod_github_repo
+    url = "https://github.com/$mod_github_owner/$mod_github_repo"
+    licenses {
+        license {
+            name = mod_license
+            url = "https://github.com/$mod_github_owner/$mod_github_repo/blob/HEAD/LICENSE"
+        }
+    }
+    organization {
+        name = 'TeaConMC'
+        url = 'https://github.com/teaconmc'
+    }
+    developers {
+        for (mod_author in "$mod_authors".split(',')) {
+            developer { id = mod_author.trim(); name = mod_author.trim() }
+        }
+    }
+    issueManagement {
+        system = 'GitHub Issues'
+        url = "https://github.com/$mod_github_owner/$mod_github_repo/issues"
+    }
+    scm {
+        url = "https://github.com/$mod_github_owner/$mod_github_repo"
+        connection = "scm:git:git://github.com/$mod_github_owner/${mod_github_repo}.git"
+        developerConnection = "scm:git:git@github.com:$mod_github_owner/${mod_github_repo}.git"
+    }
+}
+
 // Example configuration to allow publishing using the maven-publish plugin
 publishing {
     publications {
@@ -201,35 +240,8 @@ publishing {
             from components.java
             version = mod_version
             groupId = mod_group_id
+            pom {project.teaconMavenPom(it) }
             artifactId = "$mod_github_repo-NeoForge-$minecraft_version"
-            pom {
-                name = mod_github_repo
-                url = "https://github.com/$mod_github_owner/$mod_github_repo"
-                licenses {
-                    license {
-                        name = mod_license
-                        url = "https://github.com/$mod_github_owner/$mod_github_repo/blob/HEAD/LICENSE"
-                    }
-                }
-                organization {
-                    name = 'TeaConMC'
-                    url = 'https://github.com/teaconmc'
-                }
-                developers {
-                    for (mod_author in "$mod_authors".split(',')) {
-                        developer { id = mod_author.trim(); name = mod_author.trim() }
-                    }
-                }
-                issueManagement {
-                    system = 'GitHub Issues'
-                    url = "https://github.com/$mod_github_owner/$mod_github_repo/issues"
-                }
-                scm {
-                    url = "https://github.com/$mod_github_owner/$mod_github_repo"
-                    connection = "scm:git:git://github.com/$mod_github_owner/${mod_github_repo}.git"
-                    developerConnection = "scm:git:git@github.com:$mod_github_owner/${mod_github_repo}.git"
-                }
-            }
         }
     }
     repositories {

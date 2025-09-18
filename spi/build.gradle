@@ -1,0 +1,67 @@
+plugins {
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.78'
+}
+
+version = mod_version
+group = mod_group_id
+
+repositories { mavenLocal() }
+
+base { archivesName = "${mod_id.replace('_', '-')}-spi" }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+}
+
+// Added by TeaCon
+jar {
+    from("../LICENSE") { into 'META-INF' }
+}
+
+// Example configuration to allow publishing using the maven-publish plugin
+publishing {
+    publications {
+        // Modified by TeaCon
+        register('release', MavenPublication) {
+            // noinspection GroovyAssignabilityCheck
+            from components.java
+            version = mod_version
+            groupId = mod_group_id
+            println(rootProject.teaconMavenPom)
+            pom { rootProject.teaconMavenPom(it) }
+            artifactId = "${mod_id.replace('_', '-')}-spi"
+        }
+    }
+    repositories {
+        // Modified by TeaCon
+        maven {
+            name "teacon"
+            url "s3://maven/"
+            credentials(AwsCredentials) {
+                accessKey = System.env.ARCHIVE_ACCESS_KEY
+                secretKey = System.env.ARCHIVE_SECRET_KEY
+            }
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    if (repository && repository.name == "archive") {
+        it.onlyIf { System.env.MAVEN_USERNAME && System.env.MAVEN_PASSWORD }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+idea {
+    module { downloadSources = downloadJavadoc = true }
+}
