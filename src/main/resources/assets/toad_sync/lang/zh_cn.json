@@ -1,6 +1,7 @@
 {
     "toad_sync.assets.reload.hint.title": "ToadSync 资源更新",
-    "toad_sync.assets.reload.hint.message": "请按 [F3 + T] 重载资源包",
+    "toad_sync.assets.reload.hint.message.first": "资源包目前存在更新版本",
+    "toad_sync.assets.reload.hint.message.second": "请按 [F3 + T] 重载资源包",
     "toad_sync.data.reload.hint.success": "ToadSync 发现数据包更新并已重载",
     "toad_sync.data.reload.hint.failed": "ToadSync 发现数据包更新，但重载失败了",
     "toad_sync.options.reload.hint": "ToadSync 发现了游戏选项更新（重启游戏即可生效）"

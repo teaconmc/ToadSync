@@ -1,6 +1,7 @@
 {
     "toad_sync.assets.reload.hint.title": "Assets Update by ToadSync",
-    "toad_sync.assets.reload.hint.message": "Press [F3 + T] to reload resource packs",
+    "toad_sync.assets.reload.hint.message.first": "Updated version of resource pack available",
+    "toad_sync.assets.reload.hint.message.second": "Press [F3 + T] for reloading resource packs",
     "toad_sync.data.reload.hint.success": "ToadSync found an data pack update and reloaded the data pack",
     "toad_sync.data.reload.hint.failed": "ToadSync found an data pack update but failed to reloaded the data pack",
     "toad_sync.options.reload.hint": "ToadSync found an update of options (restart the game to take effect)"

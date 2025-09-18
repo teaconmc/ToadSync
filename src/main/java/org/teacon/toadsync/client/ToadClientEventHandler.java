@@ -21,7 +21,6 @@ package org.teacon.toadsync.client;
 import net.minecraft.FieldsAreNonnullByDefault;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import org.teacon.toadsync.ToadSync;
 
@@ -32,8 +31,6 @@ import java.util.Optional;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public final class ToadClientEventHandler {
-    private static final SystemToast.SystemToastId RESOURCE_RELOAD = new SystemToast.SystemToastId(10000L);
-
     public static void bootstrap() {
         ToadSync.OBJECTS.setUpdateTitleHook(() -> Minecraft.getInstance().updateTitle());
         ToadSync.OBJECTS.setAssetsToastHook(() -> {
@@ -41,8 +38,9 @@ public final class ToadClientEventHandler {
             if (loaded) {
                 var toasts = Minecraft.getInstance().getToasts();
                 var title = Component.translatable("toad_sync.assets.reload.hint.title");
-                var message = Component.translatable("toad_sync.assets.reload.hint.message");
-                return Optional.of(() -> toasts.addToast(new SystemToast(RESOURCE_RELOAD, title, message)));
+                var first = Component.translatable("toad_sync.assets.reload.hint.message.first");
+                var second = Component.translatable("toad_sync.assets.reload.hint.message.second");
+                return Optional.of(() -> toasts.addToast(new SyncToast(title, first, second)));
             }
             return Optional.empty();
         });
