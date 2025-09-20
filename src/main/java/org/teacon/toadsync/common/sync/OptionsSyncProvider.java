@@ -45,6 +45,7 @@ public final class OptionsSyncProvider implements ToadSyncProvider {
 
     @Override
     public boolean enabled(Dist dist) {
+        // options should be loaded no matter which side it is, although they are only useful on client side
         return true;
     }
 
