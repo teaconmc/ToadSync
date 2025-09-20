@@ -5,8 +5,11 @@ on:
     paths:
       - "src/**"
       - "build.gradle"
+      - ".github/workflows/**"
+    branches:
+      - '**'
     tags:
-      - "*"
+      - "**"
 
 jobs:
   build:
