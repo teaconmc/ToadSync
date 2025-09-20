@@ -9,6 +9,8 @@ ToadSync is focusing on four things:
 * Assets (resource pack)
 * Data (datapack)
 
+They can be loaded and take effect by offline files provided by modpack, or synchronized by a specified link.
+
 [![Build](https://github.com/teaconmc/ToadSync/actions/workflows/build.yml/badge.svg)](https://github.com/teaconmc/ToadSync/actions/workflows/build.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/teaconmc/ToadSync?label=GitHub+Release)](https://github.com/teaconmc/ToadSync/releases/latest)
 
