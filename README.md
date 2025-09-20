@@ -9,6 +9,9 @@ ToadSync is focusing on four things:
 * Assets (resource pack)
 * Data (datapack)
 
+[![Build](https://github.com/teaconmc/ToadSync/actions/workflows/build.yml/badge.svg)](https://github.com/teaconmc/ToadSync/actions/workflows/build.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/teaconmc/ToadSync?label=GitHub+Release)](https://github.com/teaconmc/ToadSync/releases/latest)
+
 ## Offline Usage
 
 Just create a `config/toad-sync/` folder and put these four files into it:
