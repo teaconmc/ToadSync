@@ -44,6 +44,7 @@ jobs:
         shell: bash
         env:
           CURRENT: ${{ github.ref }}
+          ARTIFACT_GIT_TAG: ${{ steps.maven_publish.outputs.artifact_git_tag }}
         # Special thanks to this post on Stack Overflow regarding change set between two tags:
         # https://stackoverflow.com/questions/12082981
         # Do note that actions/checkout will enter detach mode by default, so you won't have
@@ -56,6 +57,7 @@ jobs:
         # See https://stackoverflow.com/questions/36927089/
         run: |
           current_tag=${CURRENT/refs\/tags\//}
+          test "$current_tag" = "$ARTIFACT_GIT_TAG"
           last_tag=`git describe --tags --abbrev=0 "$current_tag"^ 2>/dev/null || echo`
           if [ last_tag ]; then changelog=`git log --pretty="format:%H: %s" ${last_tag}..$current_tag`
           else changelog=`git log --pretty="format:%H: %s"`; fi
