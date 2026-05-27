@@ -18,13 +18,15 @@
 
 package org.teacon.toadsync.client;
 
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.toasts.Toast;
-import net.minecraft.client.gui.components.toasts.ToastComponent;
+import net.minecraft.client.gui.components.toasts.ToastManager;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.teacon.toadsync.ToadSync;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -32,22 +34,43 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @FieldsAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public record SyncToast(Component title, Component first, Component second) implements Toast {
+public final class SyncToast implements Toast {
     private static final int WIDTH = 160;
     private static final int HEIGHT = 44;
     private static final int WHITE = 0xFFFFFFFF;
     private static final int YELLOW = 0xFFFFFF00;
     private static final long VISIBILITY_DURATION = 10000L;
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(ToadSync.ID, "toast/sync");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath(ToadSync.ID, "toast/sync");
+
+    private final Component title;
+    private final Component first;
+    private final Component second;
+    private Visibility wantedVisibility;
+
+    public SyncToast(Component title, Component first, Component second) {
+        this.title = title;
+        this.first = first;
+        this.second = second;
+        this.wantedVisibility = Visibility.HIDE;
+    }
 
     @Override
-    public Visibility render(GuiGraphics guiGraphics, ToastComponent component, long timeSinceLastVisible) {
-        guiGraphics.blitSprite(TEXTURE, 0, 0, this.width(), this.height());
-        guiGraphics.drawString(component.getMinecraft().font, this.title, 18, 7, YELLOW, false);
-        guiGraphics.drawString(component.getMinecraft().font, this.first, 18, 18, WHITE, false);
-        guiGraphics.drawString(component.getMinecraft().font, this.second, 18, 30, WHITE, false);
-        var displayTime = VISIBILITY_DURATION * component.getNotificationDisplayTimeMultiplier();
-        return timeSinceLastVisible < displayTime ? Visibility.SHOW : Visibility.HIDE;
+    public Visibility getWantedVisibility() {
+        return this.wantedVisibility;
+    }
+
+    @Override
+    public void update(ToastManager manager, long fullyVisibleForMs) {
+        var maxVisibleForMs = VISIBILITY_DURATION * manager.getNotificationDisplayTimeMultiplier();
+        this.wantedVisibility = fullyVisibleForMs >= maxVisibleForMs ? Visibility.HIDE : Visibility.SHOW;
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, Font font, long l) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, WIDTH, HEIGHT);
+        graphics.text(font, this.title, 18, 7, YELLOW, false);
+        graphics.text(font, this.first, 18, 18, WHITE, false);
+        graphics.text(font, this.second, 18, 30, WHITE, false);
     }
 
     @Override

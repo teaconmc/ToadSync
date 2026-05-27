@@ -19,8 +19,8 @@
 package org.teacon.toadsync.common.sync;
 
 import com.google.common.hash.HashCode;
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.neoforged.api.distmarker.Dist;
 import org.teacon.toadsync.ToadSync;
 import org.teacon.toadsync.spi.ToadSyncProvider;

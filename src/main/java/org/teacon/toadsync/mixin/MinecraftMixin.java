@@ -42,7 +42,7 @@ public abstract class MinecraftMixin {
         return builder.toString();
     }
 
-    @ModifyArg(method = "<init>(Lnet/minecraft/client/main/GameConfig;)V", index = 2, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/VirtualScreen;newWindow(Lcom/mojang/blaze3d/platform/DisplayData;Ljava/lang/String;Ljava/lang/String;)Lcom/mojang/blaze3d/platform/Window;"))
+    @ModifyArg(method = "<init>(Lnet/minecraft/client/main/GameConfig;)V", index = 3, at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/Window;<init>(Lcom/mojang/blaze3d/platform/WindowEventHandler;Lcom/mojang/blaze3d/platform/DisplayData;Ljava/lang/String;Ljava/lang/String;Lcom/mojang/blaze3d/systems/GpuBackend;)V"))
     private String onNewWindow(String inner) {
         var builder = new StringBuilder(inner);
         ToadSync.OBJECTS.onTitleUpdate(builder, this.options.languageCode, true);

@@ -19,7 +19,7 @@
 package org.teacon.toadsync.spi;
 
 import com.google.common.hash.HashCode;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.neoforged.api.distmarker.Dist;
 
 import javax.annotation.ParametersAreNonnullByDefault;

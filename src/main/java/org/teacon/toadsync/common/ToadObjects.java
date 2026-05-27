@@ -33,14 +33,13 @@ import com.google.common.util.concurrent.Runnables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.ChatFormatting;
 import net.minecraft.DetectedVersion;
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.locale.Language;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.FilePackResources;
@@ -171,9 +170,10 @@ public final class ToadObjects implements Closeable {
 
     public void afterOptionsLoad(CompoundTag options, CompoundTag toOverride) throws JsonParseException {
         LOGGER.debug("Loading vanilla options.txt ({} entries)", options.size());
+        var syncIgnoreString = options.getString(TOAD_SYNC_IGNORE);
         var syncIgnoreSet = new LinkedHashSet<String>();
-        if (options.contains(TOAD_SYNC_IGNORE, Tag.TAG_STRING)) {
-            var syncIgnore = GsonHelper.parseArray(options.getString(TOAD_SYNC_IGNORE));
+        if (syncIgnoreString.isPresent()) {
+            var syncIgnore = GsonHelper.parseArray(syncIgnoreString.get());
             for (var key : syncIgnore) {
                 if (!key.isJsonPrimitive()) {
                     throw new JsonParseException("Invalid element of value: " + TOAD_SYNC_IGNORE);
@@ -181,11 +181,11 @@ public final class ToadObjects implements Closeable {
                 syncIgnoreSet.add(key.getAsString());
             }
         }
-        for (var key : this.optionsOverride.optionsData.getAllKeys()) {
-            var oldTag = options.get(key);
-            var newTag = StringTag.valueOf(this.optionsOverride.optionsData.getString(key));
-            if (!newTag.equals(oldTag) && !syncIgnoreSet.contains(key)) {
-                toOverride.put(key, newTag);
+        for (var entry : this.optionsOverride.optionsData.entrySet()) {
+            var oldTag = options.get(entry.getKey());
+            var newTag = StringTag.valueOf(entry.getValue().asString().orElseThrow());
+            if (!newTag.equals(oldTag) && !syncIgnoreSet.contains(entry.getKey())) {
+                toOverride.put(entry.getKey(), newTag);
             }
         }
         this.optionsOverride.overridden = true;
@@ -197,8 +197,8 @@ public final class ToadObjects implements Closeable {
             for (var line = reader.readLine(); line != null; line = reader.readLine()) {
                 try {
                     var split = line.split(":", 2);
-                    var overridable = this.optionsOverride.optionsData.contains(split[0], Tag.TAG_STRING);
-                    var ignore = overridable && !this.optionsOverride.optionsData.getString(split[0]).equals(split[1]);
+                    var overridden = this.optionsOverride.optionsData.getString(split[0]);
+                    var ignore = !overridden.orElse(split[1]).equals(split[1]);
                     if (ignore) {
                         syncIgnore.add(new JsonPrimitive(split[0]));
                     }
@@ -218,8 +218,8 @@ public final class ToadObjects implements Closeable {
         var id = PACK_PREFIX + path.getFileName();
         var info = new PackLocationInfo(id, Component.literal("ToadSync"), PACK_SOURCE, Optional.empty());
         var supplier = new FilePackResources.FileResourcesSupplier(path);
-        var version = DetectedVersion.BUILT_IN.getPackVersion(PackType.CLIENT_RESOURCES);
-        var meta = Pack.readPackMetadata(info, supplier, version);
+        var version = DetectedVersion.BUILT_IN.packVersion(PackType.CLIENT_RESOURCES);
+        var meta = Pack.readPackMetadata(info, supplier, version, PackType.CLIENT_RESOURCES);
         if (meta == null) {
             var oldPack = this.gamePacksOverride.packs.remove(PackType.CLIENT_RESOURCES);
             if (oldPack != null) {
@@ -240,8 +240,8 @@ public final class ToadObjects implements Closeable {
         var id = PACK_PREFIX + path.getFileName();
         var info = new PackLocationInfo(id, Component.literal("ToadSync"), PACK_SOURCE, Optional.empty());
         var supplier = new FilePackResources.FileResourcesSupplier(path);
-        var version = DetectedVersion.BUILT_IN.getPackVersion(PackType.SERVER_DATA);
-        var meta = Pack.readPackMetadata(info, supplier, version);
+        var version = DetectedVersion.BUILT_IN.packVersion(PackType.SERVER_DATA);
+        var meta = Pack.readPackMetadata(info, supplier, version, PackType.SERVER_DATA);
         if (meta == null) {
             var oldPack = this.gamePacksOverride.packs.remove(PackType.SERVER_DATA);
             if (oldPack != null) {
@@ -262,7 +262,7 @@ public final class ToadObjects implements Closeable {
             server.getPackRepository().reload();
             var ids = calculateSelectedPacks(server);
             var css = server.createCommandSourceStack();
-            server.reloadResources(ids).whenComplete((v, t) -> {
+            server.reloadResources(ids).whenComplete((ignored, t) -> {
                 if (t != null) {
                     LOGGER.warn("Failed to reload the pack by data provider", t);
                     // noinspection DataFlowIssue

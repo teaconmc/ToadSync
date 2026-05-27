@@ -19,8 +19,8 @@
 package org.teacon.toadsync.common.remote;
 
 import com.google.common.hash.HashCode;
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.teacon.toadsync.spi.ToadSyncProvider;

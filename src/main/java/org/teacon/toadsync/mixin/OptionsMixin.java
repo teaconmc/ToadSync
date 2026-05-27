@@ -55,7 +55,7 @@ public abstract class OptionsMixin {
         };
     }
 
-    @ModifyArg(method = "load(Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Options;dataFix(Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/nbt/CompoundTag;"))
+    @ModifyArg(method = "load()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Options;dataFix(Lnet/minecraft/nbt/CompoundTag;)Lnet/minecraft/nbt/CompoundTag;"))
     public CompoundTag onDataFix(CompoundTag inner) {
         var toOverride = new CompoundTag();
         ToadSync.OBJECTS.afterOptionsLoad(inner, toOverride);

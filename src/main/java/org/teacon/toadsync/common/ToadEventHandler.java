@@ -26,9 +26,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.MoreFiles;
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.Util;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.util.Util;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -65,7 +65,7 @@ public final class ToadEventHandler {
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static void bootstrap(Dist dist) {
-        var versionString = FMLLoader.getLoadingModList().getModFileById(ToadSync.ID).versionString();
+        var versionString = FMLLoader.getCurrent().getLoadingModList().getModFileById(ToadSync.ID).versionString();
         var distString = CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_HYPHEN, dist.toString());
         LOGGER.info("ToadSync Version: {} ({} side)", versionString, distString);
         // get providers (options always at the first)

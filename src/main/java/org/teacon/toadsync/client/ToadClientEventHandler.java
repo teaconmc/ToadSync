@@ -18,8 +18,8 @@
 
 package org.teacon.toadsync.client;
 
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.teacon.toadsync.ToadSync;
@@ -36,7 +36,7 @@ public final class ToadClientEventHandler {
         ToadSync.OBJECTS.setAssetsToastHook(() -> {
             var loaded = Minecraft.getInstance().player != null;
             if (loaded) {
-                var toasts = Minecraft.getInstance().getToasts();
+                var toasts = Minecraft.getInstance().getToastManager();
                 var title = Component.translatable("toad_sync.assets.reload.hint.title");
                 var first = Component.translatable("toad_sync.assets.reload.hint.message.first");
                 var second = Component.translatable("toad_sync.assets.reload.hint.message.second");
