@@ -1,0 +1,154 @@
+diff --git a/build.gradle b/build.gradle
+index b4e7c45..d2d1f0d 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -5,6 +5,34 @@ plugins {
+     id 'idea'
+ }
+ 
++// Added by TeaCon
++abstract class TeaConDumpPathToGitHub extends DefaultTask {
++    @Input
++    abstract Property<String> getModVersion()
++    @Input
++    abstract Property<String> getMinecraftVersion()
++    @Input
++    abstract Property<String> getPublishName()
++    @InputFile
++    abstract RegularFileProperty getTargetFile()
++    @TaskAction
++    void dump() {
++        if (System.env.GITHUB_ACTIONS) {
++            File theFile = targetFile.getAsFile().get()
++
++            def outputFile = new File(System.env.GITHUB_OUTPUT)
++            // Use the env-specific line separator for maximally possible compatibility
++            def newLine = System.getProperty('line.separator')
++
++            // Write out new env variable for later usage
++            outputFile << newLine << "artifact_name=${theFile.getName()}"
++            outputFile << newLine << "artifact_publish_name=${publishName.get()}"
++            outputFile << newLine << "artifact_path=${theFile.absolutePath}"
++            outputFile << newLine << "artifact_git_tag=MC${minecraftVersion.get().split("\\.")[0..1].join(".")}-${modVersion.get()}"
++        }
++    }
++}
++
+ tasks.named('wrapper', Wrapper).configure {
+     // Define wrapper values here so as to not have to always do so when updating gradlew.properties.
+     // Switching this to Wrapper.DistributionType.ALL will download the full gradle sources that comes with
+@@ -18,11 +46,13 @@ version = mod_version
+ group = mod_group_id
+ 
+ repositories {
+-    // Add here additional repositories if required by some of the dependencies below.
++    // Modified by TeaCon
++    mavenLocal()
+ }
+ 
+ base {
+-    archivesName = mod_id
++    // Modified by TeaCon
++    archivesName = "$mod_github_repo-NeoForge-$minecraft_version"
+ }
+ 
+ // Mojang ships Java 21 to end users in 1.21.11, so mods should target Java 21.
+@@ -133,6 +163,10 @@ dependencies {
+     // For more info:
+     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+     // http://www.gradle.org/docs/current/userguide/dependency_management.html
++
++    // Added by TeaCon
++    jarJar implementation(project("spi"))
++    additionalRuntimeClasspath project("spi")
+ }
+ 
+ // This block of code expands all declared replace properties in the specified resource targets.
+@@ -160,20 +194,85 @@ sourceSets.main.resources.srcDir generateModMetadata
+ // To avoid having to run "generateModMetadata" manually, make it run on every project reload
+ neoForge.ideSyncTask generateModMetadata
+ 
++// Added by TeaCon
++jar {
++    from("LICENSE") { into 'META-INF' }
++}
++
++// Added by TeaCon
++ext.teaconMavenPom = (MavenPom pom) -> pom.tap {
++    name = mod_github_repo
++    url = "https://github.com/$mod_github_owner/$mod_github_repo"
++    licenses {
++        license {
++            name = mod_license
++            url = "https://github.com/$mod_github_owner/$mod_github_repo/blob/HEAD/LICENSE"
++        }
++    }
++    organization {
++        name = 'TeaConMC'
++        url = 'https://github.com/teaconmc'
++    }
++    developers {
++        for (mod_author in "$mod_authors".split(',')) {
++            developer { id = mod_author.trim(); name = mod_author.trim() }
++        }
++    }
++    issueManagement {
++        system = 'GitHub Issues'
++        url = "https://github.com/$mod_github_owner/$mod_github_repo/issues"
++    }
++    scm {
++        url = "https://github.com/$mod_github_owner/$mod_github_repo"
++        connection = "scm:git:git://github.com/$mod_github_owner/${mod_github_repo}.git"
++        developerConnection = "scm:git:git@github.com:$mod_github_owner/${mod_github_repo}.git"
++    }
++}
++
+ // Example configuration to allow publishing using the maven-publish plugin
+ publishing {
+     publications {
+-        register('mavenJava', MavenPublication) {
++        // Modified by TeaCon
++        register('release', MavenPublication) {
++            // noinspection GroovyAssignabilityCheck
+             from components.java
++            version = mod_version
++            groupId = mod_group_id
++            pom {project.teaconMavenPom(it) }
++            artifactId = "$mod_github_repo-NeoForge-$minecraft_version"
+         }
+     }
+     repositories {
++        // Modified by TeaCon
+         maven {
+-            url "file://${project.projectDir}/repo"
++            name "teacon"
++            url "s3://maven/"
++            credentials(AwsCredentials) {
++                accessKey = System.env.ARCHIVE_ACCESS_KEY
++                secretKey = System.env.ARCHIVE_SECRET_KEY
++            }
+         }
+     }
+ }
+ 
++// Added by TeaCon
++tasks.withType(PublishToMavenRepository).configureEach {
++    if (repository && repository.name == "archive") {
++        it.onlyIf {
++            System.env.MAVEN_USERNAME && System.env.MAVEN_PASSWORD
++        }
++    }
++}
++
++// Added by TeaCon
++tasks.register("githubActionOutput", TeaConDumpPathToGitHub) {
++    onlyIf { System.env.GITHUB_ACTIONS }
++    targetFile = jar.archiveFile
++    publishName = "${jar.archiveBaseName.get()}-${version}.jar"
++    modVersion = mod_version
++    minecraftVersion = minecraft_version
++}
++
+ tasks.withType(JavaCompile).configureEach {
+     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+ }
