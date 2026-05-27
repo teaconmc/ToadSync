@@ -163,7 +163,7 @@ public final class RemoteMeta {
                 }
                 var decodeCharset = StandardCharsets.ISO_8859_1; // latin-1 for byte-to-byte mapping
                 var data = URLDecoder.decode(split[1], decodeCharset).getBytes(decodeCharset);
-                return split[1].endsWith(";base64") ? Base64.getDecoder().decode(data) : data;
+                return split[0].endsWith(";base64") ? Base64.getDecoder().decode(data) : data;
             } catch (IllegalArgumentException e) {
                 throw new IOException("Failed to parse the entry as a literal (data URI)", e);
             }
