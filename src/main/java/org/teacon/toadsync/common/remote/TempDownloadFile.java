@@ -95,10 +95,10 @@ public final class TempDownloadFile implements Closeable {
         var location = this.retrieve();
         try {
             Files.move(location, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            this.consume(location);
         } catch (AtomicMoveNotSupportedException e) {
-            throw new IOException("Atomic move unsupported for " + location + " => " + destination, e);
+            Files.move(location, destination, StandardCopyOption.REPLACE_EXISTING);
         }
+        this.consume(location);
     }
 
     public CompletableFuture<TempDownloadFile> download(HttpClient client, HttpRequest request,
