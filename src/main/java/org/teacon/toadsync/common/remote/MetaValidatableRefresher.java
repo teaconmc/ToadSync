@@ -36,6 +36,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -125,8 +126,12 @@ public final class MetaValidatableRefresher implements Closeable {
                 }
                 // parse the content and add validatable information unless 304 returned
                 if (r.statusCode() != HttpURLConnection.HTTP_NOT_MODIFIED) {
+                    // parse remote data as patch
                     var parser = config.configFormat().createParser();
-                    parser.parse(r.body(), config, ParsingMode.MERGE);
+                    var newConfig = config.configFormat().createConfig(LinkedHashMap::new);
+                    parser.parse(r.body(), newConfig, ParsingMode.REPLACE);
+                    // write patch and construct new validatable
+                    RemoteMeta.Validatable.dump(newConfig, config);
                     newValidatable = RemoteMeta.Validatable.of(validatable.read(config), r.headers());
                     // write new config to file
                     config.save();

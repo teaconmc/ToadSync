@@ -18,7 +18,9 @@
 
 package org.teacon.toadsync.common.remote;
 
+import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.file.FileConfig;
 import com.electronwill.nightconfig.core.io.ParsingException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -62,6 +64,26 @@ public final class RemoteMeta {
 
     public static RemoteMeta of() {
         return EMPTY;
+    }
+
+    public static void dump(UnmodifiableConfig patch, FileConfig result) {
+        result.bulkUpdate(config -> {
+            var interval = patch.get("interval");
+            if (interval != null) {
+                config.set("interval", interval);
+            }
+            var remote = patch.get("remote");
+            if (remote != null) {
+                config.set("remote", remote);
+            }
+            if (patch.get("sync") instanceof UnmodifiableConfig c) {
+                var resultSync = config.get("sync") instanceof Config r ? r : config.createSubConfig();
+                for (var sync : c.entrySet()) {
+                    resultSync.set(sync.getKey(), sync.getValue());
+                }
+                config.set("sync", resultSync);
+            }
+        });
     }
 
     public RemoteMeta read(UnmodifiableConfig config) throws ParsingException {
@@ -202,6 +224,10 @@ public final class RemoteMeta {
                 return new Validatable(old.meta, null, null);
             }
             return new Validatable(old.meta, etag(headers), lastModified(headers));
+        }
+
+        public static void dump(UnmodifiableConfig patch, FileConfig result) {
+            RemoteMeta.dump(patch, result);
         }
 
         public Validatable read(UnmodifiableConfig config) throws ParsingException {
