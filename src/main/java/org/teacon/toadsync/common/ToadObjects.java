@@ -214,49 +214,28 @@ public final class ToadObjects implements Closeable {
         }
     }
 
-    public void readAssets(Path path) throws IOException {
-        var id = PACK_PREFIX + path.getFileName();
-        var info = new PackLocationInfo(id, Component.literal("ToadSync"), PACK_SOURCE, Optional.empty());
-        var supplier = new FilePackResources.FileResourcesSupplier(path);
-        var version = DetectedVersion.BUILT_IN.packVersion(PackType.CLIENT_RESOURCES);
-        var meta = Pack.readPackMetadata(info, supplier, version, PackType.CLIENT_RESOURCES);
-        if (meta == null) {
-            var oldPack = this.gamePacksOverride.packs.remove(PackType.CLIENT_RESOURCES);
-            if (oldPack != null) {
-                this.gamePacksOverride.needToReload.add(PackType.CLIENT_RESOURCES);
-            }
-            throw new IOException("Invalid pack metadata of assets in " + path);
-        }
-        var newPack = new Pack(info, supplier, meta, PACK_SELECTION);
-        this.gamePacksOverride.needToReload.add(PackType.CLIENT_RESOURCES);
-        this.gamePacksOverride.packs.put(PackType.CLIENT_RESOURCES, newPack);
+    public void readAssets(Path path) {
+        this.gamePacksOverride.reloadPending.put(PackType.CLIENT_RESOURCES, Boolean.TRUE);
+        this.gamePacksOverride.packPaths.put(PackType.CLIENT_RESOURCES, path);
     }
 
     public void setAssetsToastHook(Supplier<Optional<Runnable>> hook) {
         this.gamePacksOverride.assetsToastHook = hook;
     }
 
-    public void readData(Path path) throws IOException {
-        var id = PACK_PREFIX + path.getFileName();
-        var info = new PackLocationInfo(id, Component.literal("ToadSync"), PACK_SOURCE, Optional.empty());
-        var supplier = new FilePackResources.FileResourcesSupplier(path);
-        var version = DetectedVersion.BUILT_IN.packVersion(PackType.SERVER_DATA);
-        var meta = Pack.readPackMetadata(info, supplier, version, PackType.SERVER_DATA);
-        if (meta == null) {
-            var oldPack = this.gamePacksOverride.packs.remove(PackType.SERVER_DATA);
-            if (oldPack != null) {
-                this.gamePacksOverride.needToReload.add(PackType.SERVER_DATA);
-            }
-            throw new IOException("Invalid pack metadata of data in " + path);
-        }
-        var newPack = new Pack(info, supplier, meta, PACK_SELECTION);
-        this.gamePacksOverride.needToReload.add(PackType.SERVER_DATA);
-        this.gamePacksOverride.packs.put(PackType.SERVER_DATA, newPack);
+    public boolean isAssetsToastVisible() {
+        return this.gamePacksOverride.reloadPending.containsKey(PackType.CLIENT_RESOURCES);
+    }
+
+    public void readData(Path path) {
+        this.gamePacksOverride.reloadPending.put(PackType.SERVER_DATA, Boolean.TRUE);
+        this.gamePacksOverride.packPaths.put(PackType.SERVER_DATA, path);
     }
 
     public void handleServerTick(ServerTickEvent.Pre event) {
         Objects.requireNonNull(event);
-        var needReload = this.gamePacksOverride.needToReload.remove(PackType.SERVER_DATA);
+        var type = PackType.SERVER_DATA;
+        var needReload = this.gamePacksOverride.reloadPending.getOrDefault(type, Boolean.FALSE);
         if (needReload) {
             var server = event.getServer();
             server.getPackRepository().reload();
@@ -274,6 +253,7 @@ public final class ToadObjects implements Closeable {
                             Language.getInstance().getOrDefault("toad_sync.data.reload.hint.success", null)), true);
                 }
             });
+            this.gamePacksOverride.reloadPending.put(type, Boolean.FALSE);
         }
     }
 
@@ -281,18 +261,31 @@ public final class ToadObjects implements Closeable {
         Objects.requireNonNull(event);
         var hook = this.gamePacksOverride.assetsToastHook.get();
         if (hook.isPresent()) {
-            var needReload = this.gamePacksOverride.needToReload.remove(PackType.CLIENT_RESOURCES);
+            var type = PackType.CLIENT_RESOURCES;
+            var needReload = this.gamePacksOverride.reloadPending.getOrDefault(type, Boolean.FALSE);
             if (needReload) {
                 hook.get().run();
+                this.gamePacksOverride.reloadPending.put(type, Boolean.FALSE);
             }
         }
     }
 
     public void handleAddPackFinders(AddPackFindersEvent event) {
         event.addRepositorySource(consumer -> {
-            var pack = this.gamePacksOverride.packs.get(event.getPackType());
-            this.gamePacksOverride.needToReload.remove(event.getPackType());
-            Optional.ofNullable(pack).ifPresent(consumer);
+            var type = event.getPackType();
+            var path = this.gamePacksOverride.packPaths.get(type);
+            if (path != null) {
+                var id = PACK_PREFIX + path.getFileName();
+                var supplier = new FilePackResources.FileResourcesSupplier(path);
+                var info = new PackLocationInfo(id, Component.literal("ToadSync"), PACK_SOURCE, Optional.empty());
+                var meta = Pack.readPackMetadata(info, supplier, DetectedVersion.BUILT_IN.packVersion(type), type);
+                if (meta == null) {
+                    LOGGER.warn("Skipped pack {} for invalid pack metadata of {}", path, type.getDirectory());
+                } else {
+                    consumer.accept(new Pack(info, supplier, meta, PACK_SELECTION));
+                }
+                this.gamePacksOverride.reloadPending.remove(type);
+            }
         });
     }
 
@@ -350,8 +343,8 @@ public final class ToadObjects implements Closeable {
     @ParametersAreNonnullByDefault
     private static class GamePacksOverride {
         private Supplier<Optional<Runnable>> assetsToastHook = Optional::empty;
-        private final Map<PackType, Pack> packs = new EnumMap<>(PackType.class);
-        private final Set<PackType> needToReload = EnumSet.noneOf(PackType.class);
+        private final Map<PackType, Path> packPaths = new EnumMap<>(PackType.class);
+        private final Map<PackType, Boolean> reloadPending = new EnumMap<>(PackType.class);
     }
 
     @FieldsAreNonnullByDefault

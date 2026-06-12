@@ -39,7 +39,6 @@ public final class SyncToast implements Toast {
     private static final int HEIGHT = 44;
     private static final int WHITE = 0xFFFFFFFF;
     private static final int YELLOW = 0xFFFFFF00;
-    private static final long VISIBILITY_DURATION = 10000L;
     private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath(ToadSync.ID, "toast/sync");
 
     private final Component title;
@@ -61,8 +60,7 @@ public final class SyncToast implements Toast {
 
     @Override
     public void update(ToastManager manager, long fullyVisibleForMs) {
-        var maxVisibleForMs = VISIBILITY_DURATION * manager.getNotificationDisplayTimeMultiplier();
-        this.wantedVisibility = fullyVisibleForMs >= maxVisibleForMs ? Visibility.HIDE : Visibility.SHOW;
+        this.wantedVisibility = ToadSync.OBJECTS.isAssetsToastVisible() ? Visibility.SHOW : Visibility.HIDE;
     }
 
     @Override
