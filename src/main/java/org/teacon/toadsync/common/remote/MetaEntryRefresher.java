@@ -21,6 +21,7 @@ package org.teacon.toadsync.common.remote;
 import com.google.common.hash.HashCode;
 import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.teacon.toadsync.spi.ToadSyncProvider;
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @FieldsAreNonnullByDefault
@@ -43,6 +45,7 @@ public final class MetaEntryRefresher implements Closeable {
     private final Path dir;
     private final HttpClient client;
     private final ToadSyncProvider provider;
+    private final AtomicBoolean errorRecorded;
     private final AtomicReference<HashCode> latestDeliveredHash;
     private final AtomicReference<CompletableFuture<?>> latestTask;
 
@@ -50,6 +53,7 @@ public final class MetaEntryRefresher implements Closeable {
         this.dir = dir;
         this.client = client;
         this.provider = provider;
+        this.errorRecorded = new AtomicBoolean();
         this.latestTask = new AtomicReference<>();
         this.latestDeliveredHash = new AtomicReference<>(initHash);
     }
@@ -61,25 +65,30 @@ public final class MetaEntryRefresher implements Closeable {
         }
         switch (entry.file().getScheme()) {
             case "data" -> {
-                try (var temp = TempDownloadFile.create(this.dir)) {
-                    temp.write(entry.literal(), newHash);
-                    this.submit(temp, newHash);
+                try (var tempFile = TempDownloadFile.create(this.dir)) {
+                    tempFile.write(entry.literal(), newHash);
+                    this.submit(tempFile, newHash);
+                    this.errorRecorded.set(false);
                 } catch (IOException e) {
-                    LOGGER.warn("Failed to download file for {} provider", this.provider.id(), e);
+                    var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+                    LOGGER.log(level, "Failed to download file for {} provider", this.provider.id(), e);
                 }
             }
             case "http", "https" -> {
-                try (var temp = TempDownloadFile.create(this.dir)) {
-                    var pending = temp.download(this.client, entry.request(), newHash);
+                try (var tempFile = TempDownloadFile.create(this.dir)) {
+                    var pending = tempFile.download(this.client, entry.request(), newHash);
                     pending.whenComplete((f, t) -> {
                         if (t != null) {
-                            LOGGER.warn("Failed to download file for {} provider", this.provider.id(), t);
+                            var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+                            LOGGER.log(level, "Failed to download file for {} provider", this.provider.id(), t);
                             return;
                         }
-                        try (var newTemp = f) {
-                            this.submit(newTemp, newHash);
+                        try (var newTempFile = f) {
+                            this.submit(newTempFile, newHash);
+                            this.errorRecorded.set(false);
                         } catch (IOException e) {
-                            LOGGER.warn("Failed to download file for {} provider", this.provider.id(), e);
+                            var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+                            LOGGER.log(level, "Failed to download file for {} provider", this.provider.id(), e);
                         }
                     });
                     var oldTask = this.latestTask.getAndSet(pending);
@@ -87,7 +96,8 @@ public final class MetaEntryRefresher implements Closeable {
                         oldTask.cancel(true);
                     }
                 } catch (IOException e) {
-                    LOGGER.warn("Failed to download file for {} provider", this.provider.id(), e);
+                    var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+                    LOGGER.log(level, "Failed to download file for {} provider", this.provider.id(), e);
                 }
             }
         }

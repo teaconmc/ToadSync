@@ -24,6 +24,7 @@ import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.google.common.collect.ImmutableMap;
 import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @FieldsAreNonnullByDefault
@@ -52,11 +54,13 @@ public final class MetaValidatableRefresher implements Closeable {
 
     private final HttpClient client;
     private final Executor clientExecutor;
+    private final AtomicBoolean errorRecorded;
     private final AtomicReference<Task> latestTask;
     private final ImmutableMap<String, MetaEntryRefresher> entryRefreshers;
 
     public MetaValidatableRefresher(HttpClient client, Map<String, MetaEntryRefresher> entryRefreshers) {
         this.client = client;
+        this.errorRecorded = new AtomicBoolean();
         this.latestTask = new AtomicReference<>();
         this.clientExecutor = client.executor().orElseThrow();
         this.entryRefreshers = ImmutableMap.copyOf(entryRefreshers);
@@ -68,8 +72,10 @@ public final class MetaValidatableRefresher implements Closeable {
         try {
             config.load();
             meta = meta.read(config);
+            this.errorRecorded.set(false);
         } catch (ParsingException e) {
-            LOGGER.warn("Failed to read the remote meta", e);
+            var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+            LOGGER.log(level, "Failed to read the remote meta", e);
         }
         // enter submit cycles if http download the meta is needed
         if (meta.remote().isPresent()) {
@@ -138,8 +144,10 @@ public final class MetaValidatableRefresher implements Closeable {
                 }
                 // get next interval
                 newInterval = newValidatable.meta().interval();
+                this.errorRecorded.set(false);
             } catch (IOException | ParsingException e) {
-                LOGGER.warn("Failed to read the remote meta", e);
+                var level = this.errorRecorded.getAndSet(true) ? Level.DEBUG : Level.WARN;
+                LOGGER.log(level, "Failed to read the remote meta", e);
             } finally {
                 // iterate sync entries and submit refreshes
                 this.submit(newValidatable, newInterval.orElse(null), config);
